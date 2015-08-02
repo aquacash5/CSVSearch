@@ -11,7 +11,7 @@ Running program
     usage: CSVSearch.py [-h] [--version] sqlite csvfiles [csvfiles ...]
     
     positional arguments:
-      sqlite      Sqlite Database
+      sqlite      SQLite Database (:memory: to run in memory only)
       csvfiles    CSV Files to search
     
     optional arguments:

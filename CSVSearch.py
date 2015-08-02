@@ -86,7 +86,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('sqlite',
                         type=str,
-                        help='Sqlite Database')
+                        help='SQLite Database (:memory: to run in memory only)')
     parser.add_argument('files',
                         metavar='csvfiles',
                         type=argparse.FileType('r'),
