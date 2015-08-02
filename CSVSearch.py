@@ -11,7 +11,7 @@ import os
 
 
 usage = 'Enter a query to execute query\n' \
-        'add a " >> [filename]" to write the result to a file\n' \
+        'add a ">> [filename]" to write the result to a file\n' \
         '[import] to import new file\n' \
         '[tables] to view all tables\n' \
         '[help] for help\n' \
@@ -126,7 +126,7 @@ if __name__ == '__main__':
             sys.stdout.write(' '.join([os.path.basename(sys.argv[0]), __version__]) + '\n')
         else:
             try:
-                todo = data.split(' >> ')
+                todo = data.split('>>')
                 cursor.execute(todo[0])
                 if len(todo) == 1:
                     displaytable(cursor, cursor.fetchall())
