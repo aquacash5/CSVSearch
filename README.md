@@ -2,7 +2,7 @@
 Reads CSV files into SQLite database and provides a simple interface to access, import, and export queries
 
 # Requirements
-- [Python v3](https://www.python.org/)
+- [Python](https://www.python.org/) v2.6 or greater
 - [PrettyTable](https://code.google.com/p/prettytable/)
 
 # Usage

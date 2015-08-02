@@ -136,4 +136,6 @@ if __name__ == '__main__':
                     filename.close()
             except Exception as exp:
                 sys.stderr.write(str(exp) + '\n')
-        data = input('>>>')
+        sys.stdout.write('>>> \r')
+        data = sys.stdin.readline()
+        data = data.strip()
