@@ -90,12 +90,15 @@ if __name__ == '__main__':
     parser.add_argument('files',
                         metavar='csvfiles',
                         type=argparse.FileType('r'),
-                        nargs='?',
+                        nargs='*',
                         help='CSV Files to search',
                         default=[])
     parser.add_argument('--version',
                         action='version',
                         version='%(prog)s ' + __version__)
+    parser.add_argument('-s', '--sql',
+                        type=str,
+                        help='Run\'s SQL command, outputs csv, and quits')
     args = parser.parse_args()
     database = sqlite3.connect(args.sqlite)
     database.row_factory = dict_factory
@@ -105,6 +108,10 @@ if __name__ == '__main__':
     database.commit()
     cursor = database.cursor()
     data = 'help'
+    if args.sql:
+        cursor.execute(args.sql)
+        writeresults(cursor, cursor.fetchall(), sys.stdout)
+        data = 'quit'
     while not data.lower() in ('quit', 'exit', 'q'):
         if data.lower() in ('h', 'help'):
             sys.stdout.write(usage)
