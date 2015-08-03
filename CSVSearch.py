@@ -90,8 +90,9 @@ if __name__ == '__main__':
     parser.add_argument('files',
                         metavar='csvfiles',
                         type=argparse.FileType('r'),
-                        nargs='+',
-                        help='CSV Files to search')
+                        nargs='?',
+                        help='CSV Files to search',
+                        default=[])
     parser.add_argument('--version',
                         action='version',
                         version='%(prog)s ' + __version__)
@@ -100,6 +101,7 @@ if __name__ == '__main__':
     database.row_factory = dict_factory
     for file in args.files:
         addtable(file, database)
+        file.close()
     database.commit()
     cursor = database.cursor()
     data = 'help'
