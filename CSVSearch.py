@@ -15,7 +15,7 @@ usage = 'Enter a query to execute query\n' \
         '[import] to import new file\n' \
         '[tables] to view all tables\n' \
         '[help] for help\n' \
-        '[quit] to quit\n'
+        '[quit] to quit\n\n'
 
 
 def cls():
@@ -86,19 +86,21 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('sqlite',
                         type=str,
+                        nargs='?',
+                        default=':memory:',
                         help='SQLite Database (:memory: or - to run in memory only)')
     parser.add_argument('files',
                         metavar='csvfiles',
                         type=argparse.FileType('r'),
                         nargs='*',
-                        help='CSV Files to search',
-                        default=[])
+                        default=[],
+                        help='CSV Files to search')
     parser.add_argument('--version',
                         action='version',
                         version='%(prog)s ' + __version__)
     parser.add_argument('-s', '--sql',
                         type=str,
-                        help='Run\'s SQL command, outputs csv, and quits')
+                        help='run\'s SQL command, outputs csv, and quits')
     args = parser.parse_args()
     if args.sqlite == '-':
         args.sqlite = ':memory:'

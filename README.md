@@ -9,15 +9,15 @@ Reads CSV files into SQLite database and provides a simple interface to access, 
 Running program
 
     usage: CSVSearch.py [-h] [--version] [-s SQL] sqlite [csvfiles [csvfiles ...]]
-    
+
     positional arguments:
       sqlite             SQLite Database (:memory: or - to run in memory only)
       csvfiles           CSV Files to search
-    
+
     optional arguments:
       -h, --help         show this help message and exit
       --version          show program's version number and exit
-      -s SQL, --sql SQL  Run's SQL command, outputs csv, and quits
+      -s SQL, --sql SQL  run's SQL command, outputs csv, and quits
 
 While inside program
 
