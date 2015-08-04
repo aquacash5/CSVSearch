@@ -1,4 +1,4 @@
-#/bin/python
+#!/usr/bin/python
 __author__ = 'Kyle Bloom'
 __version__ = '0.3'
 
@@ -86,7 +86,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('sqlite',
                         type=str,
-                        help='SQLite Database (:memory: to run in memory only)')
+                        help='SQLite Database (:memory: or - to run in memory only)')
     parser.add_argument('files',
                         metavar='csvfiles',
                         type=argparse.FileType('r'),
@@ -100,6 +100,8 @@ if __name__ == '__main__':
                         type=str,
                         help='Run\'s SQL command, outputs csv, and quits')
     args = parser.parse_args()
+    if args.sqlite == '-':
+        args.sqlite = ':memory:'
     database = sqlite3.connect(args.sqlite)
     database.row_factory = dict_factory
     for file in args.files:
@@ -145,6 +147,9 @@ if __name__ == '__main__':
                     filename.close()
             except Exception as exp:
                 sys.stderr.write(str(exp) + '\n')
-        sys.stdout.write('>>> \r')
+        sys.stdout.write('>>> ')
+        sys.stdout.flush()
         data = sys.stdin.readline()
         data = data.strip()
+    database.commit()
+    database.close()
