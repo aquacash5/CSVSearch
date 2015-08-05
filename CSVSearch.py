@@ -1,6 +1,25 @@
 #!/usr/bin/python
+"""
+CSV SQLite Search
+Copyright (C) 2015 Kyle Bloom
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along
+with this program; if not, write to the Free Software Foundation, Inc.,
+51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+"""
+
 __author__ = 'Kyle Bloom'
-__version__ = '0.3'
+__version__ = '0.4'
 
 from prettytable import PrettyTable
 import argparse
@@ -10,12 +29,17 @@ import sys
 import os
 
 
-usage = 'Enter a query to execute query\n' \
-        'add a ">> [filename]" to write the result to a file\n' \
-        '[import] to import new file\n' \
-        '[tables] to view all tables\n' \
-        '[help] for help\n' \
-        '[quit] to quit\n\n'
+usage = \
+    '''
+Enter a query to execute query
+['query' >> 'file']  write the query result file
+[import 'file']      import new file
+[columns 'table']    view columns in table
+[tables]             view all tables
+[help]               display help
+[quit]               quit
+
+'''
 
 
 def cls():
@@ -23,6 +47,19 @@ def cls():
         os.system('cls')
     else:
         os.system('clear')
+
+
+def sqlsafenames(string, replacements=None):
+    if not replacements:
+        replacements = {
+            ' ': '_',
+            '-': '_',
+            '#': 'NUM',
+            '%': 'PERCENT'
+        }
+    for item in replacements:
+        string = string.replace(item, replacements[item])
+    return string
 
 
 def dict_factory(cursor, row):
@@ -34,13 +71,13 @@ def dict_factory(cursor, row):
 
 def addtable(csvfile, database, pattern=None):
     cursor = database.cursor()
-    name = os.path.basename(csvfile.name).split('.')[0].replace(' ', '_')
+    name = sqlsafenames(os.path.basename(csvfile.name).split('.')[0])
     csvdict = csv.DictReader(csvfile)
     if not pattern:
-        fields = []
+        field = []
         for item in csvdict.fieldnames:
-            fields.append(item.replace(' ', '_').replace('#', 'NUM'))
-        pattern = ', '.join(fields)
+            field.append(sqlsafenames(item))
+        pattern = ', '.join(field)
     sqldelete = 'DROP TABLE IF EXISTS {name};'.format(name=name)
     sqlcreate = 'CREATE TABLE {name} ({pattern});'.format(name=name, pattern=pattern)
     cursor.execute(sqldelete)
@@ -49,7 +86,7 @@ def addtable(csvfile, database, pattern=None):
         field = []
         items = []
         for item in row:
-            field.append(item.replace(' ', '_').replace('#', 'NUM'))
+            field.append(sqlsafenames(item))
             items.append(row[item])
         sqlinsert = '''
             INSERT INTO {name}
@@ -124,6 +161,15 @@ if __name__ == '__main__':
         elif data.lower() == 'tables':
             cursor.execute('select name from sqlite_master where type = \'table\'')
             displaytable(cursor, cursor.fetchall())
+        elif data.lower()[:7] == 'columns':
+            try:
+                data = data.split(' ', 1)
+            except Exception as e:
+                sys.stdout.write(e.message + '\n')
+                data = None
+            if type(data) is list:
+                cursor.execute('PRAGMA table_info({0})'.format(data[1]))
+                displaytable(cursor, cursor.fetchall())
         elif data.lower()[:6] == 'import':
             try:
                 filename = data.split(' ', 1)[1]

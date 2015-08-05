@@ -22,8 +22,9 @@ Running program
 While inside program
 
     Enter a query to execute query
-    add a ">> [filename]" to write the result to a file
-    [import] to import new file
-    [tables] to view all tables
-    [help] for help
-    [quit] to quit
+    ['query' >> 'file']  write the query result file
+    [import 'file']      import new file
+    [columns 'table']    view columns in table
+    [tables]             view all tables
+    [help]               display help
+    [quit]               quit
