@@ -19,6 +19,8 @@ Running program
       --version          show program's version number and exit
       -s SQL, --sql SQL  run's SQL command, outputs csv, and quits
 
+     alternatively you can pipe a csv file into this and output a query to a pipe
+
 While inside program
 
     Enter a query to execute query

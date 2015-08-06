@@ -19,9 +19,10 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 """
 
 __author__ = 'Kyle Bloom'
-__version__ = '0.4'
+__version__ = '0.5'
 
 from prettytable import PrettyTable
+from io import StringIO
 import argparse
 import sqlite3
 import csv
@@ -69,9 +70,10 @@ def dict_factory(cursor, row):
     return d
 
 
-def addtable(csvfile, database, pattern=None):
+def addtable(csvfile, database,name=None, pattern=None):
     cursor = database.cursor()
-    name = sqlsafenames(os.path.basename(csvfile.name).split('.')[0])
+    if not name:
+        name = sqlsafenames(os.path.basename(csvfile.name).split('.')[0])
     csvdict = csv.DictReader(csvfile)
     if not pattern:
         field = []
@@ -137,10 +139,12 @@ if __name__ == '__main__':
                         version='%(prog)s ' + __version__)
     parser.add_argument('-s', '--sql',
                         type=str,
-                        help='run\'s SQL command, outputs csv, and quits')
+                        help='run\'s SQL command, outputs csv, and quits',
+                        default=None)
     args = parser.parse_args()
     if args.sqlite == '-':
         args.sqlite = ':memory:'
+    data = 'help'
     database = sqlite3.connect(args.sqlite)
     database.row_factory = dict_factory
     for file in args.files:
@@ -148,7 +152,13 @@ if __name__ == '__main__':
         file.close()
     database.commit()
     cursor = database.cursor()
-    data = 'help'
+    if not sys.stdin.isatty():
+        tty = StringIO()
+        tty.write(sys.stdin.read())
+        tty.seek(0)
+        addtable(tty, database, name='input')
+        if not args.sql:
+            args.sql = 'SELECT * FROM input'
     if args.sql:
         cursor.execute(args.sql)
         writeresults(cursor, cursor.fetchall(), sys.stdout)
