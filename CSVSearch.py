@@ -23,6 +23,7 @@ __version__ = '0.5'
 
 from prettytable import PrettyTable
 from io import StringIO
+from time import sleep
 import argparse
 import sqlite3
 import csv
@@ -70,7 +71,7 @@ def dict_factory(cursor, row):
     return d
 
 
-def addtable(csvfile, database,name=None, pattern=None):
+def addtable(csvfile, database, name=None, pattern=None):
     cursor = database.cursor()
     if not name:
         name = sqlsafenames(os.path.basename(csvfile.name).split('.')[0])
@@ -110,16 +111,16 @@ def displaytable(cursor, table):
     sys.stdout.write(str(t) + '\n')
 
 
-def writeresults(cursor, table, file):
+def writeresults(cursor, table, fn):
     headers = []
     for item in cursor.description:
         headers.append(item[0])
-    file.write('{0}\n'.format(','.join(headers)))
+    fn.write('{0}\n'.format(','.join(headers)))
     for row in table:
         items = []
         for col in range(0, len(row.keys())):
             items.append(row[headers[col]])
-        file.write('{0}\n'.format(','.join(items)))
+        fn.write('{0}\n'.format(','.join(items)))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -142,57 +143,72 @@ if __name__ == '__main__':
                         help='run\'s SQL command, outputs csv, and quits',
                         default=None)
     args = parser.parse_args()
-    if args.sqlite == '-':
+    if args.sqlite == '-':  # Replace with in memory SQLite flag
         args.sqlite = ':memory:'
     data = 'help'
     database = sqlite3.connect(args.sqlite)
-    database.row_factory = dict_factory
-    for file in args.files:
-        addtable(file, database)
-        file.close()
+    database.row_factory = dict_factory  # Use dictionary factory for row returns instead of standard row
+    for fn in args.files:
+        addtable(fn, database)
+        fn.close()
     database.commit()
     cursor = database.cursor()
-    if not sys.stdin.isatty():
+    if not sys.stdin.isatty():  # Check if pipe stdin is connected to a terminal or if it is piped data
         tty = StringIO()
         tty.write(sys.stdin.read())
         tty.seek(0)
         addtable(tty, database, name='input')
-        if not args.sql:
+        if not args.sql:  # If data was piped in but there was no sql statement was supplied return table
             args.sql = 'SELECT * FROM input'
-    if args.sql:
+    if args.sql:  # If sql is supplied, run query and return
         cursor.execute(args.sql)
         writeresults(cursor, cursor.fetchall(), sys.stdout)
         data = 'quit'
     while not data.lower() in ('quit', 'exit', 'q'):
+        # region Basic Funcitons
         if data.lower() in ('h', 'help'):
             sys.stdout.write(usage)
         elif data.lower() == 'clear':
             cls()
+        elif data.lower() == 'version':
+            sys.stdout.write(' '.join([os.path.basename(sys.argv[0]), __version__]) + '\n')
+        # endregion
+
+        # region Table Information
         elif data.lower() == 'tables':
-            cursor.execute('select name from sqlite_master where type = \'table\'')
+            cursor.execute('SELECT name FROM sqlite_master WHERE type = \'table\'')
             displaytable(cursor, cursor.fetchall())
         elif data.lower()[:7] == 'columns':
             try:
                 data = data.split(' ', 1)
+            except IndexError:
+                sys.stderr.write('No table name provided [columns \'table\']\n')
+                data = None
             except Exception as e:
-                sys.stdout.write(e.message + '\n')
+                sys.stderr.write('Unknown Error: {0}'.format(e.message))
                 data = None
             if type(data) is list:
                 cursor.execute('PRAGMA table_info({0})'.format(data[1]))
                 displaytable(cursor, cursor.fetchall())
+        # endregion
+
+        # region Import new file
         elif data.lower()[:6] == 'import':
             try:
                 filename = data.split(' ', 1)[1]
-            except:
+            except IndexError:
+                sys.stderr.write('No file name provided [import \'filename\']\n')
                 filename = None
-            if not filename:
-                sys.stderr.write('Enter a file name after import to import a file\n')
-            elif os.access(filename, os.R_OK):
+            except Exception as e:
+                sys.stderr.write('Unknown Error: {0}'.format(e.message))
+                filename = None
+            if os.access(filename, os.R_OK):
                 addtable(open(filename, 'r'), database)
-            else:
+            elif filename is not None:
                 sys.stderr.write('"{0}" is not a valid file\n'.format(filename))
-        elif data.lower() == 'version':
-            sys.stdout.write(' '.join([os.path.basename(sys.argv[0]), __version__]) + '\n')
+        # endregion
+
+        # region Run Query
         else:
             try:
                 todo = data.split('>>')
@@ -205,6 +221,8 @@ if __name__ == '__main__':
                     filename.close()
             except Exception as exp:
                 sys.stderr.write(str(exp) + '\n')
+        # endregion
+        sleep(1)
         sys.stdout.write('>>> ')
         sys.stdout.flush()
         data = sys.stdin.readline()
