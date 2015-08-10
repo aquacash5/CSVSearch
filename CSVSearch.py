@@ -19,10 +19,10 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 """
 
 __author__ = 'Kyle Bloom'
-__version__ = '0.5'
+__version__ = '0.6'
 
-from prettytable import PrettyTable
-from io import StringIO
+from prettytable import from_db_cursor
+from io import BytesIO
 from time import sleep
 import argparse
 import sqlite3
@@ -35,12 +35,13 @@ usage = \
     '''
 Enter a query to execute query
 ['query' >> 'file']  write the query result file
+['query' >> !]       suppresses output
 [import 'file']      import new file
 [columns 'table']    view columns in table
 [tables]             view all tables
 [help]               display help
 [quit]               quit
-
+String Commands together with the ';'
 '''
 
 
@@ -98,29 +99,11 @@ def addtable(csvfile, database, name=None, pattern=None):
         cursor.execute(sqlinsert, items)
 
 
-def displaytable(cursor, table):
-    headers = []
-    for item in cursor.description:
-        headers.append(item[0])
-    t = PrettyTable(headers)
+def writeresults(cursor, fn):
+    table = cursor.fetchall()
+    fn.write('{0}\n'.format(','.join([item[0] for item in cursor.description])))
     for row in table:
-        items = []
-        for col in range(0, len(row.keys())):
-            items.append(row[headers[col]])
-        t.add_row(items)
-    sys.stdout.write(str(t) + '\n')
-
-
-def writeresults(cursor, table, fn):
-    headers = []
-    for item in cursor.description:
-        headers.append(item[0])
-    fn.write('{0}\n'.format(','.join(headers)))
-    for row in table:
-        items = []
-        for col in range(0, len(row.keys())):
-            items.append(row[headers[col]])
-        fn.write('{0}\n'.format(','.join(items)))
+        fn.write('{0}\n'.format(','.join([item for item in row])))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -138,92 +121,100 @@ if __name__ == '__main__':
     parser.add_argument('--version',
                         action='version',
                         version='%(prog)s ' + __version__)
-    parser.add_argument('-s', '--sql',
+    parser.add_argument('-c', '--command',
                         type=str,
-                        help='run\'s SQL command, outputs csv, and quits',
+                        help='run\'s commands and quits',
                         default=None)
     args = parser.parse_args()
     if args.sqlite == '-':  # Replace with in memory SQLite flag
         args.sqlite = ':memory:'
-    data = 'help'
     database = sqlite3.connect(args.sqlite)
-    database.row_factory = dict_factory  # Use dictionary factory for row returns instead of standard row
     for fn in args.files:
         addtable(fn, database)
         fn.close()
     database.commit()
     cursor = database.cursor()
     if not sys.stdin.isatty():  # Check if pipe stdin is connected to a terminal or if it is piped data
-        tty = StringIO()
+        tty = BytesIO()
         tty.write(sys.stdin.read())
         tty.seek(0)
         addtable(tty, database, name='input')
-        if not args.sql:  # If data was piped in but there was no sql statement was supplied return table
-            args.sql = 'SELECT * FROM input'
-    if args.sql:  # If sql is supplied, run query and return
-        cursor.execute(args.sql)
-        writeresults(cursor, cursor.fetchall(), sys.stdout)
-        data = 'quit'
-    while not data.lower() in ('quit', 'exit', 'q'):
-        # region Basic Funcitons
-        if data.lower() in ('h', 'help'):
-            sys.stdout.write(usage)
-        elif data.lower() == 'clear':
-            cls()
-        elif data.lower() == 'version':
-            sys.stdout.write(' '.join([os.path.basename(sys.argv[0]), __version__]) + '\n')
-        # endregion
+        if not args.command:  # If data was piped in but there was no sql statement was supplied return table
+            args.command = 'SELECT * FROM input >>'
+    if args.command:
+        data = args.command + ';quit'
+    else:
+        data = 'help'
+    while True:
+        data = data.split(';')
+        for query in data:
+            if query.lower() in ('quit', 'exit'):
+                sys.exit(0)
+            # region Basic Funcitons
+            if query.lower() in ('h', 'help'):
+                sys.stdout.write(usage)
+            elif query.lower() == 'clear':
+                cls()
+            elif query.lower() == 'version':
+                sys.stdout.write(' '.join([os.path.basename(sys.argv[0]), __version__]) + '\n')
+            # endregion
 
-        # region Table Information
-        elif data.lower() == 'tables':
-            cursor.execute('SELECT name FROM sqlite_master WHERE type = \'table\'')
-            displaytable(cursor, cursor.fetchall())
-        elif data.lower()[:7] == 'columns':
-            try:
-                data = data.split(' ', 1)
-            except IndexError:
-                sys.stderr.write('No table name provided [columns \'table\']\n')
-                data = None
-            except Exception as e:
-                sys.stderr.write('Unknown Error: {0}'.format(e.message))
-                data = None
-            if type(data) is list:
-                cursor.execute('PRAGMA table_info({0})'.format(data[1]))
-                displaytable(cursor, cursor.fetchall())
-        # endregion
+            # region Table Information
+            elif query.lower() == 'tables':
+                cursor.execute('SELECT name FROM sqlite_master WHERE type = \'table\'')
+                sys.stdout.write(str(from_db_cursor(cursor)) + '\n')
+            elif query.lower()[:7] == 'columns':
+                try:
+                    table = query.split(' ', 1)
+                except IndexError:
+                    sys.stderr.write('No table name provided [columns \'table\']\n')
+                    table = None
+                except Exception as e:
+                    sys.stderr.write('Unknown Error: {0}'.format(e.message))
+                    table = None
+                if type(data) is list:
+                    cursor.execute('PRAGMA table_info({0})'.format(table[1]))
+                    sys.stdout.write(str(from_db_cursor(cursor)) + '\n')
+            # endregion
 
-        # region Import new file
-        elif data.lower()[:6] == 'import':
-            try:
-                filename = data.split(' ', 1)[1]
-            except IndexError:
-                sys.stderr.write('No file name provided [import \'filename\']\n')
-                filename = None
-            except Exception as e:
-                sys.stderr.write('Unknown Error: {0}'.format(e.message))
-                filename = None
-            if os.access(filename, os.R_OK):
-                addtable(open(filename, 'r'), database)
-            elif filename is not None:
-                sys.stderr.write('"{0}" is not a valid file\n'.format(filename))
-        # endregion
+            # region Import new file
+            elif query.lower()[:6] == 'import':
+                try:
+                    filename = query.split(' ', 1)[1]
+                except IndexError:
+                    sys.stderr.write('No file name provided [import \'filename\']\n')
+                    filename = None
+                except Exception as e:
+                    sys.stderr.write('Unknown Error: {0}'.format(e.message))
+                    filename = None
+                if os.access(filename, os.R_OK):
+                    addtable(open(filename, 'r'), database)
+                elif filename is not None:
+                    sys.stderr.write('"{0}" is not a valid file\n'.format(filename))
+            # endregion
 
-        # region Run Query
-        else:
-            try:
-                todo = data.split('>>')
-                cursor.execute(todo[0])
-                if len(todo) == 1:
-                    displaytable(cursor, cursor.fetchall())
-                else:
-                    filename = open(todo[1].strip(), 'w+')
-                    writeresults(cursor, cursor.fetchall(), filename)
-                    filename.close()
-            except Exception as exp:
-                sys.stderr.write(str(exp) + '\n')
-        # endregion
-        sleep(1)
-        sys.stdout.write('>>> ')
+            # region Run Query
+            else:
+                try:
+                    todo = query.split('>>')
+                    cursor.execute(todo[0])
+                    if len(todo) == 1:
+                        if todo[0].strip()[:6].lower() == 'select' and todo[0].strip()[-1:] != '!':
+                            sys.stdout.write(str(from_db_cursor(cursor)) + '\n')
+                        else:
+                            sys.stdout.write('Command Successful\n')
+                    else:
+                        if len(todo[1]) == 0:
+                            writeresults(cursor, sys.stdout)
+                        else:
+                            filename = open(todo[1].strip(), 'w+')
+                            writeresults(cursor, filename)
+                            filename.close()
+                except Exception as e:
+                    sys.stderr.write('Unknown Error: {0}\n'.format(e.message))
+            # endregion
+            sleep(.01)
+        sys.stdout.write('\n>>> ')
         sys.stdout.flush()
         data = sys.stdin.readline()
         data = data.strip()
