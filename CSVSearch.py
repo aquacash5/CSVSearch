@@ -142,12 +142,18 @@ if __name__ == '__main__':
         if not args.command:  # If data was piped in but there was no sql statement was supplied return table
             args.command = 'SELECT * FROM input >>'
     if args.command:
-        data = args.command + ';quit'
+        try:
+            with open(args.command, 'r') as datalist:
+                data = datalist.read()
+                data += ';quit'
+        except IOError:
+            data = args.command + ';quit'
     else:
         data = 'help'
     while True:
         data = data.split(';')
         for query in data:
+            query = query.strip()
             if query.lower() in ('quit', 'exit'):
                 sys.exit(0)
             # region Basic Funcitons
