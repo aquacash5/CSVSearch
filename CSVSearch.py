@@ -210,7 +210,7 @@ if __name__ == '__main__':
                         else:
                             sys.stdout.write('Command Successful\n')
                     else:
-                        if len(todo[1]) == 0:
+                        if not todo[1]:
                             writeresults(cursor, sys.stdout)
                         else:
                             filename = open(todo[1].strip(), 'w+')
