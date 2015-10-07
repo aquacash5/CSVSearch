@@ -1,5 +1,5 @@
 # CSVSearch
-Reads CSV files into SQLite database and provides a simple interface to access, import, and export queries
+Reads CSV files into SQLite database and provides a simple interface to import, export, search, and manipulate data with a SQL interface
 
 [![Code Issues](https://www.quantifiedcode.com/api/v1/project/551645450e054369a835933708532c44/badge.svg)]
 (https://www.quantifiedcode.com/app/project/551645450e054369a835933708532c44)
