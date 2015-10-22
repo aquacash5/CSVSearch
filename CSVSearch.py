@@ -1,4 +1,12 @@
 #!/usr/bin/python
+from prettytable import from_db_cursor
+from io import BytesIO
+from time import sleep
+import argparse
+import sqlite3
+import csv
+import sys
+import os
 """
 CSV SQLite Search
 Copyright (C) 2015 Kyle Bloom
@@ -17,20 +25,8 @@ You should have received a copy of the GNU General Public License along
 with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 """
-
 __author__ = 'Kyle Bloom'
 __version__ = '0.6'
-
-from prettytable import from_db_cursor
-from io import BytesIO
-from time import sleep
-import argparse
-import sqlite3
-import csv
-import sys
-import os
-
-
 usage = \
     '''
 Enter a query to execute query
