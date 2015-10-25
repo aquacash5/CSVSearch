@@ -5,7 +5,7 @@ Reads CSV files into SQLite database and provides a simple interface to import, 
 (https://www.quantifiedcode.com/app/project/551645450e054369a835933708532c44)
 
 # Requirements
-- [Python](https://www.python.org/) v2.6 or greater
+- [Python3](https://www.python.org/)
 - [PrettyTable](https://code.google.com/p/prettytable/)
 
 # Usage
@@ -24,7 +24,7 @@ Running program
       -c COMMAND, --command COMMAND
                             run's commands and quits
 
-     alternatively you can pipe a csv file into this and output a query to a pipe
+     alternatively you can pipe a csv file into this and output the results of a query
 
 While inside program
 
