@@ -11,8 +11,7 @@ import os
 __author__ = 'Kyle Bloom'
 __version__ = '0.6'
 
-usage = \
-    '''
+USAGE = '''
 Enter a query to execute query
 ['query' >> 'file']  write the query result file
 ['query' >> !]       suppresses output
@@ -26,6 +25,7 @@ String Commands together with the ';'
 
 
 def cls():
+    """Clears Screen based on system type"""
     if os.name == 'nt':
         os.system('cls')
     else:
@@ -33,6 +33,23 @@ def cls():
 
 
 def sqlsafenames(string, replacements=None):
+    """Removes replacements from string
+    or if no replacements are passed it replaces
+    ' ', '-', '#', and '%' with
+    '_', '_', 'NUM', and 'PERCENT' respectively
+
+    Parameters
+    ----------
+    string : str
+        String to replace with replacements
+    replacements : dict of str's
+        Dictionary with the substring to extract as key and substring to replace as value
+
+    Return
+    ------
+    str
+        string with every part in replacements replaced
+    """
     if not replacements:
         replacements = {
             ' ': '_',
@@ -46,6 +63,18 @@ def sqlsafenames(string, replacements=None):
 
 
 def dict_factory(cursor, row):
+    """Creates a dictionary from a row and cursor
+
+    Parameters
+    ----------
+    cursor : python db cursor
+    row : python db row
+
+    Return
+    ------
+    dict
+        Dictionary with a string key and db object value
+    """
     d = {}
     for idx, col in enumerate(cursor.description):
         d[col[0]] = row[idx]
@@ -53,6 +82,18 @@ def dict_factory(cursor, row):
 
 
 def addtable(csvfile, database, name=None, pattern=None):
+    """Adds table based on CSV file information
+
+    Parameters
+    ----------
+    csvfile : str file path
+        Path to CSV File
+    database : python database object
+    name : str
+        Name for new table
+    pattern : str
+        Comma seperated list of column names
+    """
     cursor = database.cursor()
     if not name:
         name = sqlsafenames(os.path.basename(csvfile.name).split('.')[0])
@@ -80,10 +121,18 @@ def addtable(csvfile, database, name=None, pattern=None):
 
 
 def writeresults(cursor, fn):
+    """Writes Sql Results[cursor] to CSV File[fn]
+
+    Parameters
+    ----------
+    cursor : python db cursor
+    fn : file ojbect
+    """
     table = cursor.fetchall()
     fn.write('{0}\n'.format(','.join([item[0] for item in cursor.description])))
     for row in table:
         fn.write('{0}\n'.format(','.join([item for item in row])))
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -138,29 +187,29 @@ if __name__ == '__main__':
                 sys.exit(0)
             # region Basic Funcitons
             if query.lower() in ('h', 'help'):
-                sys.stdout.write(usage)
+                sys.stdout.write(USAGE)
             elif query.lower() == 'clear':
                 cls()
             elif query.lower() == 'version':
-                sys.stdout.write(' '.join([os.path.basename(sys.argv[0]), __version__]) + '\n')
+                sys.stdout.write(' '.join([os.path.basename(sys.argv[0]), __version__]) + os.linesep)
             # endregion
 
             # region Table Information
             elif query.lower() == 'tables':
                 cursor.execute('SELECT name FROM sqlite_master WHERE type = \'table\'')
-                sys.stdout.write(str(from_db_cursor(cursor)) + '\n')
+                sys.stdout.write(str(from_db_cursor(cursor)) + os.linesep)
             elif query.lower()[:7] == 'columns':
                 try:
                     table = query.split(' ', 1)
                 except IndexError:
-                    sys.stderr.write('No table name provided [columns \'table\']\n')
+                    sys.stderr.write('No table name provided [columns \'table\']' + os.linesep)
                     table = None
                 except Exception as e:
-                    sys.stderr.write('Unknown Error: {0}'.format(e.message))
+                    sys.stderr.write('Unknown Error: {0}'.format(str(e)))
                     table = None
                 if type(data) is list:
                     cursor.execute('PRAGMA table_info({0})'.format(table[1]))
-                    sys.stdout.write(str(from_db_cursor(cursor)) + '\n')
+                    sys.stdout.write(str(from_db_cursor(cursor)) + os.linesep)
             # endregion
 
             # region Import new file
@@ -168,15 +217,15 @@ if __name__ == '__main__':
                 try:
                     filename = query.split(' ', 1)[1]
                 except IndexError:
-                    sys.stderr.write('No file name provided [import \'filename\']\n')
+                    sys.stderr.write('No file name provided [import \'filename\']' + os.linesep)
                     filename = None
                 except Exception as e:
-                    sys.stderr.write('Unknown Error: {0}'.format(e.message))
+                    sys.stderr.write('Unknown Error: {0}'.format(str(e)))
                     filename = None
                 if os.access(filename, os.R_OK):
                     addtable(open(filename, 'r'), database)
                 elif filename is not None:
-                    sys.stderr.write('"{0}" is not a valid file\n'.format(filename))
+                    sys.stderr.write('"{0}" is not a valid file{1}'.format(filename, os.linesep))
             # endregion
 
             # region Run Query
@@ -186,9 +235,9 @@ if __name__ == '__main__':
                     cursor.execute(todo[0])
                     if len(todo) == 1:
                         if todo[0].strip()[:6].lower() == 'select' and todo[0].strip()[-1:] != '!':
-                            sys.stdout.write(str(from_db_cursor(cursor)) + '\n')
+                            sys.stdout.write(str(from_db_cursor(cursor)) + os.linesep)
                         else:
-                            sys.stdout.write('Command Successful\n')
+                            sys.stdout.write('Command Successful' + os.linesep)
                     else:
                         if not todo[1]:
                             writeresults(cursor, sys.stdout)
@@ -197,10 +246,10 @@ if __name__ == '__main__':
                             writeresults(cursor, filename)
                             filename.close()
                 except Exception as e:
-                    sys.stderr.write('Unknown Error: {0}\n'.format(e.message))
+                    sys.stderr.write('Unknown Error: {0}{1}'.format(str(e), os.linesep))
             # endregion
             sleep(.01)
-        sys.stdout.write('\n>>> ')
+        sys.stdout.write(os.linesep + '>>> ')
         sys.stdout.flush()
         data = sys.stdin.readline()
         data = data.strip()
