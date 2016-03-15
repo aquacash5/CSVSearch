@@ -7,6 +7,7 @@ import sqlite3
 import csv
 import sys
 import os
+
 """
 CSV SQLite Search
 Copyright (C) 2015 Kyle Bloom
@@ -25,8 +26,10 @@ You should have received a copy of the GNU General Public License along
 with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 """
+
 __author__ = 'Kyle Bloom'
 __version__ = '0.6'
+
 usage = \
     '''
 Enter a query to execute query
@@ -88,10 +91,10 @@ def addtable(csvfile, database, name=None, pattern=None):
         for item in row:
             field.append(sqlsafenames(item))
             items.append(row[item])
-        sqlinsert = '''
-            INSERT INTO {name}
-            ({fields}) VALUES ({data})
-        '''.format(name=name, fields=', '.join(field), data=','.join('?' * len(items)))
+        sqlinsert = 'INSERT INTO {name} ({fields}) VALUES ({data})'.format(
+            name=name,
+            fields=', '.join(field),
+            data=','.join('?' * len(items)))
         cursor.execute(sqlinsert, items)
 
 
