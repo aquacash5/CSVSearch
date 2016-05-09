@@ -27,9 +27,9 @@ String Commands together with the ';'
 def cls():
     """Clears Screen based on system type"""
     if os.name == 'nt':
-        os.system('cls')
+        _ = os.system('cls')
     else:
-        os.system('clear')
+        _ = os.system('clear')
 
 
 def sqlsafenames(string, replacements=None):
