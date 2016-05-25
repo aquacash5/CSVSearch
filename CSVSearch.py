@@ -9,7 +9,7 @@ import sys
 import os
 
 __author__ = 'Kyle Bloom'
-__version__ = '0.6'
+__version__ = '1.0'
 
 USAGE = '''
 Enter a query to execute query
